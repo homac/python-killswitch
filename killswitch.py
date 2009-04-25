@@ -44,8 +44,8 @@ class _Hal():
         from dbus.mainloop.glib import DBusGMainLoop
 
         dbus_loop = DBusGMainLoop()
-
-        self.bus = dbus.SystemBus(mainloop=dbus_loop)
+        dbus.set_default_main_loop(dbus_loop)
+        self.bus = dbus.SystemBus()
 
         self.hal_manager = self.bus.get_object('org.freedesktop.Hal',
                                                '/org/freedesktop/Hal/Manager')
