@@ -10,7 +10,7 @@ information.
 Installation
 ============
 
- $ ./setup.py install
+ $ sudo ./setup.py install
 
 
 Have fun,
