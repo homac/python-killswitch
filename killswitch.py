@@ -8,8 +8,8 @@ class Killswitch:
         it.
         bus: a properly initiated object to a D-Bus system bus
         udi: unique device itendifier (HAL)
-        name: name returned by the HAL killswitch.name property"""
-        name: type returned by the HAL killswitch.type property (wlan, bluetooth, etc.)"""
+        name: name returned by the HAL killswitch.name property
+        type: type returned by the HAL killswitch.type property (wlan, bluetooth, etc.)"""
         self.bus = bus
         self.__name = name
         self.__type = type
