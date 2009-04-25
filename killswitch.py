@@ -2,7 +2,7 @@ import dbus
 
 class Killswitch:
     "class representing one single killswitch object"
-    def __init__(self, bus, udi=None, name=None):
+    def __init__(self, bus, udi=None, name=None, type=None):
         """Initialize a new Killswitch object. Usually you should not need
         to create objects of this class because the KillswitchManager does
         it.
@@ -11,6 +11,7 @@ class Killswitch:
         name: name returned by the HAL killswitch.name property"""
         self.bus = bus
         self.__name = name
+        self.__type = type
         self.__udi = udi
 
     def name(self):
@@ -20,6 +21,10 @@ class Killswitch:
     def udi(self):
         "return the unique device identifier (udi) of the killswitch object"
         return self.__udi
+
+    def type(self):
+        "return the type of the killswitch object (bluetooth, wlan, etc...)"
+        return self.__type
 
     def get_state(self):
         "returns the current state of the killswitch object"
@@ -89,7 +94,9 @@ class KillswitchManager(_Hal):
             if name == False:
                 continue
 
-            self.__switches.append(Killswitch(self.bus, udi, name))
+            type = self._hal_get_property(udi, "killswitch.type")
+
+            self.__switches.append(Killswitch(self.bus, udi, name, type))
 
             self.bus.add_signal_receiver(self.__property_modified_cb,
                                                "PropertyModified",
@@ -121,8 +128,9 @@ class KillswitchManager(_Hal):
             if name == False:
                 print "Killswitch has no killswitch.name"
                 return
-            print "adding %s with name %s" % (path, name)
-            ks = Killswitch(path, name)
+            type = self._hal_get_property(path, "killswitch.type")
+            print "adding %s with name %s and type %s" % (path, name, type)
+            ks = Killswitch(path, name, type)
             self.__switches.append(ks)
             self.__killswitch_added_cb(ks)
 
