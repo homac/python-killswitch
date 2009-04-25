@@ -1,0 +1,17 @@
+python-killswitch
+=================
+
+python-killswitch provides a python module called killswitch. It provides
+convenient function/methods for other applications to manage all the
+killswitches found in the system. See 'pydoc killswitch.py' for more
+information.
+
+
+Installation
+============
+
+ $ ./setup.py install
+
+
+Have fun,
+ Holger

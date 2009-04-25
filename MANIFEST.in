@@ -1,0 +1,4 @@
+include killswitch.py
+include setup.py
+include README
+include COPYING
