@@ -1,3 +1,23 @@
+"""python-killswitch provides a python module called killswitch. It
+provides convenient function/methods for other applications to manage all
+the killswitches found in the system.
+
+Usually the first thing you do is:
+
+  import killswitch
+
+  k = killswitch.KillswitchManager()
+
+Then you can make use of the methods like that:
+
+  for ks in k.get_killswitches():
+      print "Killswitch %d:" % I
+      print "\tUDI: %s" % ks.udi()
+      print "\tName: %s" % ks.name()
+      print "\tType: %s" % ks.type()
+      print "\tPower: %d" % ks.get_state()
+"""
+
 import dbus
 
 class Killswitch:
