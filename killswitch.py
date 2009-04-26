@@ -172,8 +172,8 @@ class KillswitchManager(_Hal):
 
     def set_killswitch_added_cb(self, cb):
         """Set the callback function which is called when a new killswitch
-        is found. A new Killswitch object will be passed to the callback function"
-        """
+        is found. A new Killswitch object will be passed to the callback
+        function"""
         self.__killsiwtch_added_cb = cb
 
     def set_killswitch_removed_cb(self, cb):
