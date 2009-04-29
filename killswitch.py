@@ -20,64 +20,11 @@ Then you can make use of the methods like that:
 
 import dbus
 
-class Killswitch:
-    "class representing one single killswitch object"
-    def __init__(self, bus, udi=None, name=None, type=None):
-        """Initialize a new Killswitch object. Usually you should not need
-        to create objects of this class because the KillswitchManager does
-        it.
-        bus: a properly initiated object to a D-Bus system bus
-        udi: unique device itendifier (HAL)
-        name: name returned by the HAL killswitch.name property
-        type: type returned by the HAL killswitch.type property (wlan, bluetooth, etc.)"""
-        self.bus = bus
-        self.__name = name
-        self.__type = type
-        self.__udi = udi
-
-    def name(self):
-        "return the name of the killswitch"
-        return self.__name
-
-    def udi(self):
-        "return the unique device identifier (udi) of the killswitch object"
-        return self.__udi
-
-    def type(self):
-        "return the type of the killswitch object (bluetooth, wlan, etc...)"
-        return self.__type
-
-    def get_state(self):
-        "returns the current state of the killswitch object"
-        manager = self.bus.get_object('org.freedesktop.Hal',
-                                      self.udi())
-        manager_interface = dbus.Interface(manager,
-                                           dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
-        return manager_interface.GetPower()
-        
-    def set_state(self, state):
-        "sets the killswitch state, either to true or to false"
-        manager = self.bus.get_object('org.freedesktop.Hal',
-                                      self.udi())
-        manager_interface = dbus.Interface(manager,
-                                           dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
-        return manager_interface.SetPower(state)        
-
-
 class _Hal():
-    "handling communication with the HAL daemon"
-    def __init__(self):
-        from dbus.mainloop.glib import DBusGMainLoop
-
-        dbus_loop = DBusGMainLoop()
-        dbus.set_default_main_loop(dbus_loop)
-        self.bus = dbus.SystemBus()
-
-        self.hal_manager = self.bus.get_object('org.freedesktop.Hal',
-                                               '/org/freedesktop/Hal/Manager')
-
-        self.hal_manager_iface = dbus.Interface(self.hal_manager,
-                                                dbus_interface='org.freedesktop.Hal.Manager')
+    "convenient function for querying the HAL daemon"
+    def __init__(self, bus):
+        "bus: bus object to a properly initializes connection to the D-Bus system bus"
+        self.bus = bus
 
     def _hal_get_property(self, udi, key):
         manager = self.bus.get_object('org.freedesktop.Hal',
@@ -96,7 +43,61 @@ class _Hal():
         return iface.QueryCapability(capability)
 
     def _hal_get_killswitches(self):
-        return self.hal_manager_iface.FindDeviceByCapability("killswitch")
+        manager = self.bus.get_object('org.freedesktop.Hal',
+                                      '/org/freedesktop/Hal/Manager')
+
+        iface = dbus.Interface(manager,
+                               dbus_interface='org.freedesktop.Hal.Manager')
+
+        return iface.FindDeviceByCapability("killswitch")
+
+class Killswitch(_Hal):
+    "class representing one single killswitch object"
+    def __init__(self, bus, udi=None, name=None, type=None):
+        """Initialize a new Killswitch object. Usually you should not need
+        to create objects of this class because the KillswitchManager does
+        it.
+        bus: a properly initiated object to a D-Bus system bus
+        udi: unique device itendifier (HAL)
+        name: name returned by the HAL killswitch.name property
+        type: type returned by the HAL killswitch.type property (wlan, bluetooth, etc.)"""
+
+        _Hal.__init__(self, bus)
+
+        self.bus = bus
+        self.__name = name
+        self.__type = type
+        self.__udi = udi
+
+    def name(self):
+        "return the name of the killswitch"
+        return self.__name
+
+    def udi(self):
+        "return the unique device identifier (udi) of the killswitch object"
+        return self.__udi
+
+    def type(self):
+        "return the type of the killswitch object (bluetooth, wlan, etc...)"
+        return self.__type
+
+    def get_state(self):
+        """returns the current state of the killswitch object.
+        0: Killswitch is on,  device is disabled via software
+        1: Killswitch is off, device operational
+        2: Killswitch is on, device disabled via hardware switch"""
+
+        return self._hal_get_property(self.__udi, "killswitch.state")
+
+    def set_state(self, state):
+        "sets the killswitch state, either to true or to false"
+        manager = self.bus.get_object('org.freedesktop.Hal',
+                                      self.__udi)
+        manager_interface = dbus.Interface(manager,
+                                           dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
+        return manager_interface.SetPower(state)        
+
+
 
 class KillswitchManager(_Hal):
     """Base class providing convenient function to keep track of the state
@@ -104,11 +105,20 @@ class KillswitchManager(_Hal):
     def __init__(self):
         """Initialize the connection to the HAL daemon and update the list
         of killswitches found in the system"""
-        _Hal.__init__(self)
+
+        from dbus.mainloop.glib import DBusGMainLoop
+
+        dbus_loop = DBusGMainLoop()
+        dbus.set_default_main_loop(dbus_loop)
+        self.bus = dbus.SystemBus()
+
+        _Hal.__init__(self, self.bus)
+
         self.__switches = []
         self.__state_changed_cb = None
         self.__killswitch_added_cb = None
         self.__killswitch_removed_cb = None
+
 
         for udi in self._hal_get_killswitches():
             name = self._hal_get_property(udi, "killswitch.name")
@@ -167,7 +177,10 @@ class KillswitchManager(_Hal):
         return self.__switches
 
     def set_state_changed_cb(self, cb):
-        "Set the callback function which is called as soon as a killswitch changes its state"
+        """Set the callback function which is called as soon as a
+        killswitch changes its state.  See the get_state() function of the
+        Killswitch class for the exact values"""
+        
         self.__state_changed_cb = cb
 
     def set_killswitch_added_cb(self, cb):
