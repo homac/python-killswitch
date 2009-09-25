@@ -124,6 +124,7 @@ class KillswitchManager(_Hal):
             if name == False:
                 name = self._hal_get_property(udi, "info.product")
                 if name == False:
+                    print "Killswitch has no killswitch.name nor a info.product"
                     continue
 
             type = self._hal_get_property(udi, "killswitch.type")
@@ -158,8 +159,10 @@ class KillswitchManager(_Hal):
             print "new killswitch %s  " % (path)
             name = self._hal_get_property(path, "killswitch.name")
             if name == False:
-                print "Killswitch has no killswitch.name"
-                return
+                name = self._hal_get_property(path, "info.product")
+                if name == False:
+                    print "Killswitch has no killswitch.name nor a info.product"
+                    return
             type = self._hal_get_property(path, "killswitch.type")
             print "adding %s with name %s and type %s" % (path, name, type)
             ks = Killswitch(path, name, type)
