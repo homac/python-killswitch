@@ -98,7 +98,6 @@ class Killswitch(_Hal):
         return manager_interface.SetPower(state)        
 
 
-
 class KillswitchManager(_Hal):
     """Base class providing convenient function to keep track of the state
     of all the killswitches in the system"""
@@ -123,7 +122,9 @@ class KillswitchManager(_Hal):
         for udi in self._hal_get_killswitches():
             name = self._hal_get_property(udi, "killswitch.name")
             if name == False:
-                continue
+                name = self._hal_get_property(udi, "info.product")
+                if name == False:
+                    continue
 
             type = self._hal_get_property(udi, "killswitch.type")
 
