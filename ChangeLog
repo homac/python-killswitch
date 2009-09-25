@@ -1,3 +1,8 @@
+2009-09-25  Holger Macht  <hmacht@suse.de>
+
+	* killswitch.py: Some killswitches don't have a killswitch.name
+	property, so use info.product
+
 2009-04-25  Holger Macht  <hmacht@suse.de>
 
 	* killswitch.py: Initial release
