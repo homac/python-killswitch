@@ -161,6 +161,12 @@ class KillswitchManager(_Hal):
     def __device_added_cb(self, path):
         if self._hal_has_capability(path, "killswitch"):
             print "new killswitch %s  " % (path)
+
+            for item in self.__switches:
+                if path == item.udi():
+                    print "killswitch already in list"
+                    return
+            
             name = self._hal_get_property(path, "killswitch.name")
             if name == False:
                 name = self._hal_get_property(path, "info.product")
@@ -175,7 +181,7 @@ class KillswitchManager(_Hal):
 
     def __device_removed_cb(self, path):
         for item in self.__switches:
-            if path == item.udi:
+            if path == item.udi():
                 print "removing killswitch %s" % item.udi
                 self.__killswitch_removed_cb(item)
                 self.__switches.remove(item)
