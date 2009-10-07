@@ -87,7 +87,12 @@ class Killswitch(_Hal):
         1: Killswitch is off, device operational
         2: Killswitch is on, device disabled via hardware switch"""
 
-        return self._hal_get_property(self.__udi, "killswitch.state")
+        "sets the killswitch state, either to true or to false"
+        manager = self.bus.get_object('org.freedesktop.Hal',
+                                      self.__udi)
+        manager_interface = dbus.Interface(manager,
+                                           dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
+        return manager_interface.GetPower()
 
     def set_state(self, state):
         "sets the killswitch state, either to true or to false"
