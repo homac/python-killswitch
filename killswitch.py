@@ -69,6 +69,11 @@ class Killswitch(_Hal):
         self.__type = type
         self.__udi = udi
 
+        manager = self.bus.get_object('org.freedesktop.Hal',
+                                      self.__udi)
+        self.manager_interface = dbus.Interface(manager,
+                                                dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
+
     def name(self):
         "return the name of the killswitch"
         return self.__name
@@ -87,19 +92,11 @@ class Killswitch(_Hal):
         1: Killswitch is off, device operational
         2: Killswitch is on, device disabled via hardware switch"""
 
-        manager = self.bus.get_object('org.freedesktop.Hal',
-                                      self.__udi)
-        manager_interface = dbus.Interface(manager,
-                                           dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
-        return manager_interface.GetPower()
+        return self.manager_interface.GetPower()
 
     def set_state(self, state):
         "sets the killswitch state, either to true or to false"
-        manager = self.bus.get_object('org.freedesktop.Hal',
-                                      self.__udi)
-        manager_interface = dbus.Interface(manager,
-                                           dbus_interface='org.freedesktop.Hal.Device.KillSwitch')
-        return manager_interface.SetPower(state)        
+        return self.manager_interface.SetPower(state)        
 
 
 class KillswitchManager(_Hal):
@@ -182,7 +179,7 @@ class KillswitchManager(_Hal):
     def __device_removed_cb(self, path):
         for item in self.__switches:
             if path == item.udi():
-                print "removing killswitch %s" % item.udi
+                print "removing killswitch %s" % item.udi()
                 self.__killswitch_removed_cb(item)
                 self.__switches.remove(item)
 
