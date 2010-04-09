@@ -1,3 +1,9 @@
+2010-04-10  Holger Macht  <hmacht@suse.de>
+
+	* setup.py: bump to version 0.2
+	* killswitch.py: Only include real and static killswitches, not
+	the ones which hotplug along with the devices.
+
 2009-09-25  Holger Macht  <hmacht@suse.de>
 
 	* killswitch.py: Some killswitches don't have a killswitch.name
