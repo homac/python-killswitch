@@ -128,6 +128,9 @@ class KillswitchManager(_Hal):
                     print "Killswitch has no killswitch.name nor a info.product"
                     continue
 
+            if self._hal_get_property(udi, "info.parent") != "/org/freedesktop/Hal/devices/computer":
+                continue
+
             type = self._hal_get_property(udi, "killswitch.type")
 
             self.__switches.append(Killswitch(self.bus, udi, name, type))
@@ -157,8 +160,6 @@ class KillswitchManager(_Hal):
 
     def __device_added_cb(self, path):
         if self._hal_has_capability(path, "killswitch"):
-            print "new killswitch %s  " % (path)
-
             for item in self.__switches:
                 if path == item.udi():
                     print "killswitch already in list"
@@ -170,9 +171,15 @@ class KillswitchManager(_Hal):
                 if name == False:
                     print "Killswitch has no killswitch.name nor a info.product"
                     return
+
+            if self._hal_get_property(path, "info.parent") != "/org/freedesktop/Hal/devices/computer":
+                return
+
+            print "new killswitch %s  " % (path)
+
             type = self._hal_get_property(path, "killswitch.type")
             print "adding %s with name %s and type %s" % (path, name, type)
-            ks = Killswitch(path, name, type)
+            ks = Killswitch(self.bus, path, name, type)
             self.__switches.append(ks)
             self.__killswitch_added_cb(ks)
 
