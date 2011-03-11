@@ -1,3 +1,12 @@
+#!/usr/bin/python
+#
+# python-killswitch -- Convenient Functions for Managing Killswitches
+#
+# Copyright (C) 2009,2010,2011 Holger Macht <holger@homac.de>
+#
+# This file is released under the WTFPL (http://sam.zoy.org/wtfpl/)
+#
+
 """python-killswitch provides a python module called killswitch. It
 provides convenient function/methods for other applications to manage all
 the killswitches found in the system.
