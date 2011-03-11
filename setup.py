@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 
-PYTHON_KILLSWITCH_VERSION='0.2'
+PYTHON_KILLSWITCH_VERSION='0.3'
 
 dist = setup(name='python-killswitch',
     version=PYTHON_KILLSWITCH_VERSION,
