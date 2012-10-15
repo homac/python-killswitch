@@ -1,3 +1,8 @@
+2012-10-15  Holger Macht  <holger@homac.de>
+
+	* setup.py: bump to version 0.4
+	* killswitch.py: Update to URfkill 0.4.0 DBus API
+
 2010-04-10  Holger Macht  <hmacht@suse.de>
 
 	* setup.py: bump to version 0.2
