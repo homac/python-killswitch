@@ -2,7 +2,7 @@
 #
 # python-killswitch -- Convenient Functions for Managing Killswitches
 #
-# Copyright (C) 2009,2010,2011 Holger Macht <holger@homac.de>
+# Copyright (C) 2009,2010,2011,2012 Holger Macht <holger@homac.de>
 #
 # This file is released under the WTFPL (http://sam.zoy.org/wtfpl/)
 #
@@ -32,6 +32,7 @@ python-killswitch supports both HAL and URfkill as backend.
 import dbus
 
 _URFKILL_SERVICE="org.freedesktop.URfkill"
+_URFKILL_DEVICE_SERVICE="org.freedesktop.URfkill.Device"
 _URFKILL_PATH="/org/freedesktop/URfkill"
 
 _HAL_SERVICE="org.freedesktop.Hal"
@@ -82,17 +83,18 @@ def _have_hal():
 
 class Killswitch():
     "class representing one single killswitch object"
-    def __init__(self, bus, udi=None, name=None, type=None, is_urfkill=0):
+    def __init__(self, bus, udi=None, name=None, type=None, index=None, is_urfkill=0):
         """Initialize a new Killswitch object. Usually you should not need
         to create objects of this class because the KillswitchManager does
         it.
         bus: a properly initiated object to a D-Bus system bus
         udi: unique device itendifier
         name: a proper name for the killswitch
-        type: a killswitch type, such as wlan, bluetooth, gps, wwan, etc."""
+        type: a killswitch type, such as wlan, bluetooth, gps, wwan, etc.
+        index: the index number"""
 
         if is_urfkill:
-            self.k = _KillswitchUrfkill(bus, udi, name, type)
+            self.k = _KillswitchUrfkill(bus, udi, name, type, index)
         else:
             self.k = _KillswitchHal(bus, udi, name, type)
 
@@ -107,6 +109,10 @@ class Killswitch():
     def type(self):
         "return the type of the killswitch object (bluetooth, wlan, etc...)"
         return self.k.type()
+
+    def index(self):
+        "return the index"
+        return self.k.index()
 
     def get_state(self):
         """returns the current state of the killswitch object.
@@ -123,11 +129,12 @@ class Killswitch():
         return self.k.set_state(state)
 
 class _KillswitchAbstract():
-    def __init__(self, bus, udi=None, name=None, type=None):
+    def __init__(self, bus, udi=None, name=None, type=None, index=None):
         self._bus = bus
         self.__name = name
         self.__type = type
         self.__udi = udi
+        self.__index = index
 
     def name(self):
         return self.__name
@@ -137,6 +144,9 @@ class _KillswitchAbstract():
 
     def type(self):
         return self.__type
+
+    def index(self):
+        return self.__index
 
 class _KillswitchHal(_KillswitchAbstract):
     def __init__(self, bus, udi=None, name=None, type=None):
@@ -153,20 +163,23 @@ class _KillswitchHal(_KillswitchAbstract):
         return self.manager_interface.SetPower(state)
 
 class _KillswitchUrfkill(_KillswitchAbstract):
-    def __init__(self, bus, udi=None, name=None, type=None):
-        _KillswitchAbstract.__init__(self, bus, udi, name, type)
+    def __init__(self, bus, udi=None, name=None, type=None, index=None):
+        _KillswitchAbstract.__init__(self, bus, udi, name, type, index)
 
-        manager = self._bus.get_object(_URFKILL_SERVICE, _URFKILL_PATH)
-        self.manager_interface = dbus.Interface(manager, dbus_interface=_URFKILL_SERVICE)
+        manager = self._bus.get_object(_URFKILL_SERVICE, udi)
+        self.manager_interface = dbus.Interface(manager, dbus_interface="org.freedesktop.DBus.Properties")
 
     def get_state(self):
-        return not self.manager_interface.GetKillswitch(self.udi())[2]
+        return not self.manager_interface.Get(_URFKILL_DEVICE_SERVICE, "soft")
 
     def set_state(self, state):
+        manager = self._bus.get_object(_URFKILL_SERVICE, _URFKILL_PATH)
+        iface = dbus.Interface(manager, dbus_interface=_URFKILL_SERVICE)
+
         if state == 1:
-            return self.manager_interface.UnblockIdx(self.udi())
+            return iface.BlockIdx(self.index(), False)
         elif state == 0:
-            return self.manager_interface.BlockIdx(self.udi())
+            return iface.BlockIdx(self.index(), True)
         else:
             _message("Unknown state")
 
@@ -245,45 +258,55 @@ class _KillswitchManagerUrfkill(_KillswitchManagerAbstract):
         _KillswitchManagerAbstract.__init__(self)
 
         for ks in self.__get_killswitches():
-            ks = Killswitch(self._bus, ks[0], ks[5], self.__get_name_for_type(ks[1]), 1); 
-            name = ks.name()
-            _message("found ks with name %s and type %s" % (name, ks.type()))
-            self._switches.append(ks)
+            manager = self._bus.get_object(_URFKILL_SERVICE, ks)
+            iface = dbus.Interface(manager, dbus_interface="org.freedesktop.DBus.Properties")
+
+            name = iface.Get(_URFKILL_DEVICE_SERVICE, "name")
+            devtype = iface.Get(_URFKILL_DEVICE_SERVICE, "type")
+            index = iface.Get(_URFKILL_DEVICE_SERVICE, "index")
+            k = Killswitch(self._bus, ks, name, self.__get_name_for_type(devtype), index, 1); 
+            _message("found ks with name %s and type %s" % (name, devtype))
+            self._switches.append(k)
 
         self._bus.add_signal_receiver(self.__killswitch_modified_cb,
-                                      "RfkillChanged",
+                                      "DeviceChanged",
                                       _URFKILL_SERVICE, _URFKILL_SERVICE, _URFKILL_PATH)
         self._bus.add_signal_receiver(self.__killswitch_added_cb,
-                                      "RfkillAdded",
+                                      "DeviceAdded",
                                       _URFKILL_SERVICE, _URFKILL_SERVICE, _URFKILL_PATH)
         self._bus.add_signal_receiver(self.__killswitch_removed_cb,
-                                      "RfkillRemoved",
+                                      "DeviceRemoved",
                                       _URFKILL_SERVICE, _URFKILL_SERVICE, _URFKILL_PATH)
 
     def __get_killswitches(self):
         manager = self._bus.get_object(_URFKILL_SERVICE, _URFKILL_PATH)
         iface = dbus.Interface(manager, dbus_interface=_URFKILL_SERVICE)
 
-        return iface.GetAll()
+        return iface.EnumerateDevices()
                          
-    def __killswitch_modified_cb(self, index, type, state, soft, hard, name):
+    def __killswitch_modified_cb(self, device):
         for item in self._switches:
-            if index == item.udi():
+            if device == item.udi():
                 state = item.get_state()
                 _message("new state of %s is %s" % (item.udi(), state))
                 self._state_changed_cb(item, state)
 
-    def __killswitch_added_cb(self, index, type, state, soft, hard, name):
+    def __killswitch_added_cb(self, device):
         for item in self._switches:
-            if index == item.udi():
+            if device == item.udi():
                 _message("killswitch already in list")
                 return
 
-        ks = Killswitch(self._bus, index, name, self.__get_name_for_type(type), 1); 
-        name = ks.name()
-        type = ks.type()
+        manager = self._bus.get_object(_URFKILL_SERVICE, device)
+        iface = dbus.Interface(manager, dbus_interface="org.freedesktop.DBus.Properties")
 
-        _message("adding %s with name %s and type %s" % (index, name, self.__get_name_for_type(type)))
+        name = iface.Get(_URFKILL_DEVICE_SERVICE, "name")
+        devtype = iface.Get(_URFKILL_DEVICE_SERVICE, "type")
+        index = iface.Get(_URFKILL_DEVICE_SERVICE, "index")
+
+        ks = Killswitch(self._bus, device, name, self.__get_name_for_type(devtype), index, 1); 
+
+        _message("adding %s with name %s and type %s" % (index, name, self.__get_name_for_type(devtype)))
 
         self._switches.append(ks)
         self._killswitch_added_cb(ks)
